@@ -71,7 +71,7 @@ class Model:
         Dense(self, self.layers[-2].len(), activation=tf.nn.leaky_relu)
         Reshape(self, [self.batchSize] + self.layers[-4].shape)
         DeconvutionalLayer(self, [2,2,32,64], [self.batchSize] + self.layers[1].shape, [1,2,2,1], activation=tf.nn.leaky_relu)
-        DeconvutionalLayer(self, [2,2,1,32], [self.batchSize] + self.inputsShape, [1,2,2,1], activation=tf.nn.tanh)
+        DeconvutionalLayer(self, [2,2,1,32], [self.batchSize] + self.inputsShape, [1,2,2,1], activation=tf.nn.sigmoid)
 
     def diffEncoder(self):
         self.use = "diff"
