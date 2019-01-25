@@ -8,7 +8,7 @@ from model import SET_HYPERPARAMETER
 
 interval = 10
 latentSpace = 8
-restore="DIFF_23jan_ls8_c"
+restore="DIFF_23jan_ls8_e"
 codeNpz="./npz/codes_ls8.npz"
 
 class Render(QLabel):

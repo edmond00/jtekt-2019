@@ -3,11 +3,11 @@ import numpy as np
 from model import SET_HYPERPARAMETER
 
 SET_HYPERPARAMETER("contrast", 50.0)
-SET_HYPERPARAMETER("learningRate", 0.0005)
-SET_HYPERPARAMETER("diffLatentSpace", 8)
+SET_HYPERPARAMETER("learningRate", 0.001)
+SET_HYPERPARAMETER("diffLatentSpace", 3)
 data = np.load("./npz/diffs.npz")["arr_1"]
-model = model.emptyModel("DIFF_23jan_ls8_d", inputsShape=list(data.shape[1:]), use="diff")
+model = model.emptyModel("24jan_ls3", inputsShape=list(data.shape[1:]), use="diff")
 
-model.restore("DIFF_23jan_ls8_c")
+#model.restore("")
 model.train(epoch=200, dataset=data)
 model.save()

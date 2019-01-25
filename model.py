@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 import types
 from tqdm import tqdm
-from layers  import InputLayer, ConvutionalLayer, DeconvutionalLayer, Dense, Reshape
+from layers  import *
 
 CONFIG = types.SimpleNamespace()
 CONFIG.saveDir = "./saves/"
@@ -23,11 +23,12 @@ def SET_HYPERPARAMETER(key, value):
     global HYPERPARAMETER
     HYPERPARAMETER.__dict__[key] = value
 
-def jtektModel(name, data, log=True):
+def jtektModel(name, data, log=True, shuffle=True):
     rawTrainSet,_ = data.getAll(data.goodOnly)
     rawTestSet,_ = data.getAll(data.badOnly)
-    np.random.shuffle(rawTrainSet)
-    np.random.shuffle(rawTestSet)
+    if shuffle is True:
+        np.random.shuffle(rawTrainSet)
+        np.random.shuffle(rawTestSet)
     trainSet = rawTrainSet
     testSet = rawTestSet
     return Model(name, trainSet, testSet, log=log)
@@ -38,12 +39,13 @@ def mnistModel(name, log=True):
     testSet = np.expand_dims(rawTestSet, 3) / 255
     return Model(name, trainSet, testSet, log=log)
 
-def npzModel(name, path, use, log=True):
+def npzModel(name, path, use, log=True, shuffle=True):
     data = np.load(path)
     trainSet = data['arr_0']
     testSet = data['arr_1']
-    np.random.shuffle(trainSet)
-    np.random.shuffle(testSet)
+    if shuffle is True:
+        np.random.shuffle(trainSet)
+        np.random.shuffle(testSet)
     return Model(name, trainSet, testSet, use, log=log)
 
 def emptyModel(name, use, inputsShape, log=True):
@@ -95,6 +97,29 @@ class Model:
         Reshape(self, [self.batchSize] + self.layers[-4].shape)
         DeconvutionalLayer(self, [2,2,32,64], [self.batchSize] + self.layers[1].shape, [1,2,2,1], activation=tf.nn.leaky_relu)
         DeconvutionalLayer(self, [2,2,1,32], [self.batchSize] + self.inputsShape, [1,2,2,1], activation=tf.nn.tanh)
+
+#    def diffEncoder(self):
+#        self.use = "diff"
+#        #ENCODE
+#        InputLayer(
+#            self,
+#            self.placeholder.inputs,
+#            self.inputsShape,
+#            contrast=HYPERPARAMETER.contrast,
+#            normalize=True)
+#        ConvutionalLayer(self, [2,2,1,32], [1,2,2,1], activation=tf.nn.leaky_relu)
+#        ConvutionalLayer(self, [2,2,32,64], [1,2,2,1])
+#        Reshape(self, [self.batchSize, self.layers[-1].len()])
+#        Dense(self, HYPERPARAMETER.diffLatentSpace, activation=tf.nn.sigmoid)
+#
+#        self.encoder = self.outputs()
+#        self.layers[-1].outputs2 = self.placeholder.code
+#
+#        #DECODE
+#        Dense(self, self.layers[-2].len(), activation=tf.nn.leaky_relu)
+#        Reshape(self, [self.batchSize] + self.layers[-4].shape)
+#        DeconvutionalLayer(self, [2,2,32,64], [self.batchSize] + self.layers[1].shape, [1,2,2,1], activation=tf.nn.leaky_relu)
+#        DeconvutionalLayer(self, [2,2,1,32], [self.batchSize] + self.inputsShape, [1,2,2,1], activation=lambda x:tf.nn.relu(tf.nn.tanh(x)))
 
     def __init__(self, name, trainSet, testSet, use="jtekt", log=True, inputsShape=None):
         tf.reset_default_graph()

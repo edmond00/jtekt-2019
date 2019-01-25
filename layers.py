@@ -168,6 +168,32 @@ class Dense(Layer):
         Layer.__init__(self, model, out, [outputLen], activation, out2)
         self.checkShape(1)
 
+class NAC(Layer):
+
+    layerType = "NAC"
+
+    def __init__(self, model, outputLen):
+        name = "%sNAC" % model.prefix()
+        self.name = name + ("_%d" % getCount(name))
+        out2 = None
+        with tf.variable_scope(self.name, reuse = tf.AUTO_REUSE):
+            w = model.getWeight(
+                name = "weights",
+                shape = [model.outputs().shape[1], outputLen],
+                dtype = tf.float32,
+                initializer = model.winit)
+            m = model.getWeight(
+                name = "weights",
+                shape = [model.outputs().shape[1], outputLen],
+                dtype = tf.float32,
+                initializer = model.winit)
+            W = tf.nn.tanh(w) * tf.nn.sigmoid(m)
+            out = tf.matmul(model.outputs(), W)
+            if model.outputs2() is not None:
+                out2 = tf.matmul(model.outputs2(), W)
+        Layer.__init__(self, model, out, [outputLen], None, out2)
+        self.checkShape(1)
+
 class Reshape(Layer):
 
     layerType = "reshape"

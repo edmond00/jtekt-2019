@@ -19,7 +19,7 @@ SET_HYPERPARAMETER("latentSpace", 3)
 rawEncoder = emptyModel("raw_encoder", use="jtekt", inputsShape=list(allData.shape[1:]), log=False)
 diffEncoder = emptyModel("diff_encoder", use="diff", inputsShape=[76,134,1], log=False)
 print("restore diff encoder")
-diffEncoder.restore("DIFF_23jan_ls8_c")
+diffEncoder.restore("DIFF_23jan_ls8_e")
 print("restore raw encoder")
 rawEncoder.restore("16jan-ls3")
 
@@ -38,16 +38,18 @@ def encodeAndCluster(plotResult=False, plotOne=False, csv=None):
     diffReproductions = diffEncoder.reproduce(diffs)
     diffReproductionImgs = diffReproductions.reshape(diffReproductions.shape[0:3])
 
-    print("mean shift...")
-    #clustering = MeanShift(bandwidth=1.35, n_jobs=-1).fit(encodedDiffs)
-    clustering = KMeans(n_clusters=100).fit(encodedDiffs)
+    print("cluster...")
+    ridx = np.random.choice(len(encodedDiffs), 1000, replace=False)
+    #encodedDiffs = encodedDiffs[ridx]
+    #clustering = MeanShift(bandwidth=10).fit(encodedDiffs)
+    clustering = Ward(n_clusters=50).fit(encodedDiffs)
     labels = clustering.labels_
 
     nclusters = labels.max()
     print("\nNumber clusters : %d" % nclusters)
 
     allClusters = [np.arange(len(labels))[labels == i] for i in range(0, labels.max()+1)]
-    clusterMinSize = 6
+    clusterMinSize = 1
     nBigClusters = 0
     unclassifyData = 0
 
@@ -74,9 +76,9 @@ def encodeAndCluster(plotResult=False, plotOne=False, csv=None):
     print("mean clusters size : %d" % np.mean([len(cluster) for cluster in clusters]))
     print("median clusters size : %d\n" % np.median([len(cluster) for cluster in clusters]))
 
-    
+
     if plotResult:
-#        np.random.shuffle(clusters)
+        np.random.shuffle(clusters)
         n = 1
 #        plt.figure(figsize=(nclusters,20))
         plt.suptitle("JTEKT unsupervised clustering")
@@ -107,17 +109,17 @@ def encodeAndCluster(plotResult=False, plotOne=False, csv=None):
             ax.axis('off')
             img = imgs[idx]
             ax.imshow(img, cmap="gray", vmin=0, vmax=img.max())
-    
+
             ax = plt.subplot(4, 4, column*4+2)
             ax.axis('off')
             img = reproductionImgs[idx]
             ax.imshow(img, cmap="gray", vmin=0, vmax=img.max())
-    
+
             ax = plt.subplot(4, 4, column*4+3)
             ax.axis('off')
             img = diffImgs[idx]
             ax.imshow(img, cmap="gray", vmin=0, vmax=img.max())
-    
+
             ax = plt.subplot(4, 4, column*4+4)
             ax.axis('off')
             img = diffReproductionImgs[idx]

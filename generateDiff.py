@@ -4,10 +4,13 @@ from model import SET_HYPERPARAMETER
 
 SET_HYPERPARAMETER("latentSpace", 3)
 
-model = model.npzModel("16jan-ls3-generateDiff", "./npz/dataWithNames.npz", log=False, use="jtekt")
+data = np.load("./npz/dataWithNames.npz")
+goods = data["arr_0"]
+bads = data["arr_1"]
+model = model.emptyModel("ls3-generateDiff", inputsShape=list(goods[0].shape), log=False, use="jtekt")
 
 model.restore("16jan-ls3")
-trainDiffs = model.getDiff(model.trainSet)
-testDiffs = model.getDiff(model.testSet)
-np.savez("./npz/diffs.npz", trainDiffs, testDiffs)
+trainDiffs = model.getDiff(goods)
+testDiffs = model.getDiff(bads)
+np.savez("./npz/diffsWithNames.npz", trainDiffs, testDiffs, data["arr_2"], data["arr_3"])
 
