@@ -13,13 +13,13 @@ goodNames = data["arr_2"]
 badNames = data["arr_3"]
 allNames = np.concatenate([goodNames,badNames])
 
-SET_HYPERPARAMETER("contrast", 50.)
-SET_HYPERPARAMETER("diffLatentSpace", 8)
+SET_HYPERPARAMETER("contrast", 300.)
+SET_HYPERPARAMETER("diffLatentSpace", 6)
 SET_HYPERPARAMETER("latentSpace", 3)
 rawEncoder = emptyModel("raw_encoder", use="jtekt", inputsShape=list(allData.shape[1:]), log=False)
 diffEncoder = emptyModel("diff_encoder", use="diff", inputsShape=[76,134,1], log=False)
 print("restore diff encoder")
-diffEncoder.restore("DIFF_23jan_ls8_e")
+diffEncoder.restore("29jan_vae_ls6_d")
 print("restore raw encoder")
 rawEncoder.restore("16jan-ls3")
 
@@ -42,10 +42,10 @@ def encodeAndCluster(plotResult=False, plotOne=False, csv=None):
     ridx = np.random.choice(len(encodedDiffs), 1000, replace=False)
     #encodedDiffs = encodedDiffs[ridx]
     #clustering = MeanShift(bandwidth=10).fit(encodedDiffs)
-    clustering = Ward(n_clusters=50).fit(encodedDiffs)
+    clustering = KMeans(n_clusters=19).fit(encodedDiffs)
     labels = clustering.labels_
 
-    nclusters = labels.max()
+    nclusters = labels.max() + 1
     print("\nNumber clusters : %d" % nclusters)
 
     allClusters = [np.arange(len(labels))[labels == i] for i in range(0, labels.max()+1)]
@@ -82,7 +82,7 @@ def encodeAndCluster(plotResult=False, plotOne=False, csv=None):
         n = 1
 #        plt.figure(figsize=(nclusters,20))
         plt.suptitle("JTEKT unsupervised clustering")
-        rows = min(15, nclusters)
+        rows = min(25, nclusters)
         cols = 6
         for i in range(rows):
             print("Cluster %d size : %d" % (i, len(clusters[i])))

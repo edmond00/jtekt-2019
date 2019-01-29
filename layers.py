@@ -65,6 +65,8 @@ class InputLayer(Layer):
 #            mean, variance = tf.nn.moments(out, axes=[3,2,1])
             vmax = tf.reduce_max(out, axis=[3,2,1])
             vmin = tf.reduce_min(out, axis=[3,2,1])
+#            vmax = tf.reduce_max(out)
+#            vmin = tf.reduce_min(out)
             vrange = vmax - vmin
             out = tf.transpose((tf.transpose(out) - vmin) / vrange)
         Layer.__init__(self, model, out, shape)
@@ -166,6 +168,56 @@ class Dense(Layer):
                 mm2 = tf.matmul(model.outputs2(), w)
                 out2 = mm2 + b
         Layer.__init__(self, model, out, [outputLen], activation, out2)
+        self.checkShape(1)
+
+class Dense(Layer):
+
+    layerType = "dense"
+
+    def __init__(self, model, outputLen, activation = None, factor=None):
+        name = "%sDense" % model.prefix()
+        self.name = name + ("_%d" % getCount(name))
+        out2 = None
+        with tf.variable_scope(self.name, reuse = tf.AUTO_REUSE):
+            w = model.getWeight(
+                name = "weights",
+                shape = [model.outputs().shape[1], outputLen],
+                dtype = tf.float32,
+                initializer = model.winit)
+            b = model.getBias(
+                name = "bias",
+                shape = [outputLen],
+                dtype = tf.float32,
+                initializer = model.binit)
+            mm = tf.matmul(model.outputs(), w)
+            out = mm + b
+            if factor is not None:
+                out = factor * out
+            if model.outputs2() is not None:
+                mm2 = tf.matmul(model.outputs2(), w)
+                out2 = mm2 + b
+                if factor is not None:
+                    out2 = factor * out2
+        Layer.__init__(self, model, out, [outputLen], activation, out2)
+        self.checkShape(1)
+
+class VAE(Layer):
+
+    layerType = "VAE"
+
+    def __init__(self, model, mean, std):
+        name = "%sVAE" % model.prefix()
+        self.name = name + ("_%d" % getCount(name))
+        out2 = None
+        with tf.variable_scope(self.name, reuse = tf.AUTO_REUSE):
+            epsilon = tf.random_normal(tf.stack([model.batchSize, mean.shape[0]]))
+            out = mean.outputs + tf.multiply(epsilon, tf.exp(std.outputs))
+            if mean.outputs2 is not None:
+                if std.outputs2 is not None:
+                    out2 = mean.outputs2 + tf.multiply(epsilon, tf.exp(std.outputs2))
+                else:
+                    out2 = mean.outputs2
+        Layer.__init__(self, model, out, [mean.shape[0]], out2=out2)
         self.checkShape(1)
 
 class NAC(Layer):

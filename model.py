@@ -18,6 +18,7 @@ HYPERPARAMETER.epoch = 500
 HYPERPARAMETER.latentSpace = 15
 HYPERPARAMETER.diffLatentSpace = 5
 HYPERPARAMETER.contrast = 100
+HYPERPARAMETER.normByImage = True
 
 def SET_HYPERPARAMETER(key, value):
     global HYPERPARAMETER
@@ -64,6 +65,7 @@ class Model:
             resize=60)
         ConvutionalLayer(self, [2,2,1,32], [1,2,2,1], activation=tf.nn.leaky_relu)
         ConvutionalLayer(self, [2,2,32,64], [1,2,2,1], activation=tf.nn.leaky_relu)
+        self.features = self.outputs()
         Reshape(self, [self.batchSize, self.layers[-1].len()])
         Dense(self, HYPERPARAMETER.latentSpace, activation=tf.nn.leaky_relu)
 
@@ -75,6 +77,32 @@ class Model:
         DeconvutionalLayer(self, [2,2,32,64], [self.batchSize] + self.layers[1].shape, [1,2,2,1], activation=tf.nn.leaky_relu)
         DeconvutionalLayer(self, [2,2,1,32], [self.batchSize] + self.inputsShape, [1,2,2,1], activation=tf.nn.sigmoid)
 
+    def diffEncoder_old(self):
+        self.use = "diff"
+        #ENCODE
+        InputLayer(
+            self,
+            self.placeholder.inputs,
+            self.inputsShape,
+            contrast=HYPERPARAMETER.contrast,
+            normalize=True)
+        c1 = ConvutionalLayer(self, [2,2,1,32], [1,2,2,1], activation=tf.nn.leaky_relu)
+        c2 = ConvutionalLayer(self, [2,2,32,64], [1,2,2,1], activation=tf.nn.leaky_relu)
+        self.features = self.outputs()
+        reshape = Reshape(self, [self.batchSize, self.layers[-1].len()])
+        std = Dense(self, HYPERPARAMETER.diffLatentSpace, activation=tf.nn.tanh, factor=0.5)
+        mean = Dense(self, HYPERPARAMETER.diffLatentSpace, activation=tf.nn.tanh)
+        VAE(self, mean, std)
+
+        self.encoder = self.outputs()
+        self.layers[-1].outputs2 = self.placeholder.code
+
+        #DECODE
+        Dense(self, reshape.len(), activation=tf.nn.relu)
+        Reshape(self, [self.batchSize] + c2.shape)
+        DeconvutionalLayer(self, [2,2,32,64], [self.batchSize] + c1.shape, [1,2,2,1], activation=tf.nn.leaky_relu)
+        DeconvutionalLayer(self, [2,2,1,32], [self.batchSize] + self.inputsShape, [1,2,2,1], activation=lambda x : tf.nn.relu(tf.nn.tanh(x)))
+
     def diffEncoder(self):
         self.use = "diff"
         #ENCODE
@@ -84,19 +112,24 @@ class Model:
             self.inputsShape,
             contrast=HYPERPARAMETER.contrast,
             normalize=True)
-        ConvutionalLayer(self, [2,2,1,32], [1,2,2,1], activation=tf.nn.leaky_relu)
-        ConvutionalLayer(self, [2,2,32,64], [1,2,2,1], activation=tf.nn.leaky_relu)
-        Reshape(self, [self.batchSize, self.layers[-1].len()])
-        Dense(self, HYPERPARAMETER.diffLatentSpace, activation=tf.nn.leaky_relu)
+        c1 = ConvutionalLayer(self, [2,2,1,16], [1,2,2,1], activation=tf.nn.leaky_relu)
+        c2 = ConvutionalLayer(self, [2,2,16,32], [1,2,2,1], activation=tf.nn.leaky_relu)
+        c3 = ConvutionalLayer(self, [2,2,32,64], [1,2,2,1], activation=tf.nn.leaky_relu)
+        self.features = self.outputs()
+        reshape = Reshape(self, [self.batchSize, self.layers[-1].len()])
+        std = Dense(self, HYPERPARAMETER.diffLatentSpace, factor=0.5)
+        mean = Dense(self, HYPERPARAMETER.diffLatentSpace)
+        self.encoder = mean.outputs
+        mean.outputs2 = self.placeholder.code
+        VAE(self, mean, std)
 
-        self.encoder = self.outputs()
-        self.layers[-1].outputs2 = self.placeholder.code
 
         #DECODE
-        Dense(self, self.layers[-2].len(), activation=tf.nn.leaky_relu)
-        Reshape(self, [self.batchSize] + self.layers[-4].shape)
-        DeconvutionalLayer(self, [2,2,32,64], [self.batchSize] + self.layers[1].shape, [1,2,2,1], activation=tf.nn.leaky_relu)
-        DeconvutionalLayer(self, [2,2,1,32], [self.batchSize] + self.inputsShape, [1,2,2,1], activation=tf.nn.tanh)
+        Dense(self, reshape.len(), activation=tf.nn.relu)
+        Reshape(self, [self.batchSize] + c3.shape)
+        DeconvutionalLayer(self, [2,2,32,64], [self.batchSize] + c2.shape, [1,2,2,1], activation=tf.nn.leaky_relu)
+        DeconvutionalLayer(self, [2,2,16,32], [self.batchSize] + c1.shape, [1,2,2,1], activation=lambda x : tf.nn.relu(tf.nn.tanh(x)))
+        DeconvutionalLayer(self, [2,2,1,16], [self.batchSize] + self.inputsShape, [1,2,2,1], activation=lambda x : tf.nn.relu(tf.nn.tanh(x)))
 
 #    def diffEncoder(self):
 #        self.use = "diff"
@@ -282,6 +315,12 @@ class Model:
 
     def encode(self, dataset):
         result = self.session.run(self.encoder, feed_dict={
+            self.placeholder.inputs: dataset
+        })
+        return result
+
+    def getFeatures(self, dataset):
+        result = self.session.run(self.features, feed_dict={
             self.placeholder.inputs: dataset
         })
         return result
