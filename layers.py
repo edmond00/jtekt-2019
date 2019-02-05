@@ -46,29 +46,34 @@ class InputLayer(Layer):
         name = "%sInputs" % model.prefix()
         self.name = name + ("_%d" % getCount(name))
         out = placeholder
-        if crop is not None:
-            out = tf.image.crop_to_bounding_box(
-                out,
-                crop[0],
-                crop[1],
-                shape[0] - crop[0] - crop[2],
-                shape[1] - crop[1] - crop[3])
-            shape[0] -= (crop[0] + crop[2])
-            shape[1] -= (crop[1] + crop[3])
-        if resize is not None:
-            shape[0] = int((shape[0] * resize) / 100)
-            shape[1] = int((shape[1] * resize) / 100)
-            out = tf.image.resize_images(out, [shape[0], shape[1]])
-        if contrast is not None:
-            out = tf.nn.relu(tf.image.adjust_contrast(out, contrast))
-        if normalize:
-#            mean, variance = tf.nn.moments(out, axes=[3,2,1])
-            vmax = tf.reduce_max(out, axis=[3,2,1])
-            vmin = tf.reduce_min(out, axis=[3,2,1])
-#            vmax = tf.reduce_max(out)
-#            vmin = tf.reduce_min(out)
-            vrange = vmax - vmin
-            out = tf.transpose((tf.transpose(out) - vmin) / vrange)
+        with tf.variable_scope(self.name, reuse = tf.AUTO_REUSE):
+            if crop is not None:
+                out = tf.image.crop_to_bounding_box(
+                    out,
+                    crop[0],
+                    crop[1],
+                    shape[0] - crop[0] - crop[2],
+                    shape[1] - crop[1] - crop[3])
+                shape[0] -= (crop[0] + crop[2])
+                shape[1] -= (crop[1] + crop[3])
+            if resize is not None:
+                shape[0] = int((shape[0] * resize) / 100)
+                shape[1] = int((shape[1] * resize) / 100)
+                out = tf.image.resize_images(out, [shape[0], shape[1]])
+            if contrast is not None:
+                out = tf.nn.relu(tf.image.adjust_contrast(out, contrast))
+            if normalize == "individual":
+                print("individual normalization")
+                vmax = tf.reduce_max(out, axis=[3,2,1])
+                vmin = tf.reduce_min(out, axis=[3,2,1])
+                vrange = vmax - vmin
+                out = tf.transpose((tf.transpose(out) - vmin) / vrange)
+            elif normalize == "normal":
+                print("default normalization")
+                vmax = tf.reduce_max(out)
+                vmin = tf.reduce_min(out)
+                vrange = vmax - vmin
+                out = (out-vmin)/vrange
         Layer.__init__(self, model, out, shape)
 
 class ConvutionalLayer(Layer):

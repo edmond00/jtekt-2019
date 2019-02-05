@@ -14,16 +14,18 @@ badNames = data["arr_3"]
 allNames = np.concatenate([goodNames,badNames])
 
 SET_HYPERPARAMETER("contrast", 300.)
-SET_HYPERPARAMETER("diffLatentSpace", 6)
-SET_HYPERPARAMETER("latentSpace", 3)
+SET_HYPERPARAMETER("diffLatentSpace", 5)
+SET_HYPERPARAMETER("normalize", "individual")
+SET_HYPERPARAMETER("latentSpace", 1)
+
 rawEncoder = emptyModel("raw_encoder", use="jtekt", inputsShape=list(allData.shape[1:]), log=False)
 diffEncoder = emptyModel("diff_encoder", use="diff", inputsShape=[76,134,1], log=False)
 print("restore diff encoder")
-diffEncoder.restore("29jan_vae_ls6_d")
+diffEncoder.restore("5feb-ls5-inorm_f")
 print("restore raw encoder")
-rawEncoder.restore("16jan-ls3")
+rawEncoder.restore("4feb-ls1")
 
-def encodeAndCluster(plotResult=False, plotOne=False, csv=None):
+def encodeAndCluster(plotResult=False, plotOne=False, csv=None, npz=None):
     dataset = allData
     imgs = dataset.reshape(dataset.shape[0:3])
     print("get reproductions...")
@@ -48,28 +50,11 @@ def encodeAndCluster(plotResult=False, plotOne=False, csv=None):
     nclusters = labels.max() + 1
     print("\nNumber clusters : %d" % nclusters)
 
-    allClusters = [np.arange(len(labels))[labels == i] for i in range(0, labels.max()+1)]
+    clusters = [np.arange(len(labels))[labels == i] for i in range(0, labels.max()+1)]
     clusterMinSize = 1
-    nBigClusters = 0
-    unclassifyData = 0
 
-    clusters = []
-    bigLabels = []
-    idx = 0
-    for cluster in allClusters:
-        np.random.shuffle(cluster)
-        if len(cluster) < clusterMinSize:
-            unclassifyData += len(cluster)
-            bigLabels.append(-1)
-        else:
-            nBigClusters += 1
-            clusters.append(cluster)
-            bigLabels.append(idx)
-            idx += 1
 
     sizes = [len(cluster) for cluster in clusters]
-    print("\nNumber big clusters : %d" % nBigClusters)
-    print("small cluster data : %d" % unclassifyData)
     print("biggest clusters : %d" % max(sizes))
     print("second biggest clusters : %d" % sorted(sizes)[-2])
     print("third biggest clusters : %d" % sorted(sizes)[-3])
@@ -130,9 +115,12 @@ def encodeAndCluster(plotResult=False, plotOne=False, csv=None):
         file = open(csv,"w") 
         file.write("file,cluster\n")
         for idx in range(len(allNames)):
-            file.write("%s,%d\n" % (allNames[idx],bigLabels[labels[idx]]))
+            file.write("%s,%d\n" % (allNames[idx],labels[idx]))
         file.close()
+
+    if npz is not None:
+        np.savez(npz, allNames, labels)
 
 
 if __name__ == "__main__":
-    encodeAndCluster(plotResult=True, plotOne=True, csv=None)
+    encodeAndCluster(plotResult=True, plotOne=True, csv="csv/vaeResults_inorm_ls5.csv", npz="npz/results/vaeResults_inorm_ls5.npz")

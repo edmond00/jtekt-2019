@@ -19,6 +19,7 @@ HYPERPARAMETER.latentSpace = 15
 HYPERPARAMETER.diffLatentSpace = 5
 HYPERPARAMETER.contrast = 100
 HYPERPARAMETER.normByImage = True
+HYPERPARAMETER.normalize = "normal" #"individual"
 
 def SET_HYPERPARAMETER(key, value):
     global HYPERPARAMETER
@@ -53,7 +54,7 @@ def emptyModel(name, use, inputsShape, log=True):
     return Model(name, None, None, use, log=log, inputsShape=inputsShape)
 
 class Model:
-    
+
     def jtektEncoder(self):
         self.use = "jtekt"
         #ENCODE
@@ -111,7 +112,7 @@ class Model:
             self.placeholder.inputs,
             self.inputsShape,
             contrast=HYPERPARAMETER.contrast,
-            normalize=True)
+            normalize=HYPERPARAMETER.normalize)
         c1 = ConvutionalLayer(self, [2,2,1,16], [1,2,2,1], activation=tf.nn.leaky_relu)
         c2 = ConvutionalLayer(self, [2,2,16,32], [1,2,2,1], activation=tf.nn.leaky_relu)
         c3 = ConvutionalLayer(self, [2,2,32,64], [1,2,2,1], activation=tf.nn.leaky_relu)

@@ -34,10 +34,9 @@ class IgnoreList:
         return False
 
 ignoreList = IgnoreList()
-        
 
 class Item:
-    
+
     def __init__(self):
         pass
 
@@ -125,7 +124,7 @@ class Data:
             inputs.append(self.rawData[idx].data)
             outputs.append(self.rawData[idx].labels.reshape([-1]))
         return np.array(inputs), np.array(outputs)
-            
+
 
     def batch(self, dataset, size):
         inputs = []
@@ -252,7 +251,7 @@ class Data:
     @classmethod
     def dataFromFiles(cls):
         result =  cls()
-        result.rawData =cls.getData(csvList) 
+        result.rawData =cls.getData(csvList)
         print("dispatch by label...")
         result.sortByLabel()
         print("split train/test...")
